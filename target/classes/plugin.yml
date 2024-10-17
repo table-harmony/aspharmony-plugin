@@ -1,0 +1,4 @@
+name: AspHarmonyPlugin
+version: "1.0-SNAPSHOT"
+main: me.lironkaner.aspHarmonyPlugin.AspHarmonyPlugin
+api-version: "1.21"
