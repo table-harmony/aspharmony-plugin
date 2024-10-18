@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import org.bukkit.Bukkit;
 
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
 import static spark.Spark.*;
 
@@ -65,10 +66,20 @@ public class BookHttpServer {
             res.type("application/json");
 
             int id = Integer.parseInt(req.params(":id"));
-            bookService.deleteBook(id);
 
-            res.status(200);
-            return gson.toJson(new SuccessResponse("Book deleted successfully"));
+            try {
+                bookService.deleteBook(id);
+                res.status(200);
+                return gson.toJson(new SuccessResponse("Book deleted successfully"));
+            } catch (CompletionException e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(new ErrorResponse("Unexpected error: " + e.getCause().getMessage()));
+            } catch (Exception e) {
+                e.printStackTrace();
+                res.status(500);
+                return gson.toJson(new ErrorResponse("Unexpected error: " + e.getMessage()));
+            }
         });
 
         exception(Exception.class, (e, req, res) -> {
