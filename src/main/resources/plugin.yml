@@ -2,3 +2,10 @@ name: AspHarmonyPlugin
 version: "1.0-SNAPSHOT"
 main: me.lironkaner.aspHarmonyPlugin.AspHarmonyPlugin
 api-version: "1.21"
+commands:
+  stopHttpServer:
+    description: Stops http server
+    usage: /stopHttpServer
+  startHttpServer:
+    description: Starts http server
+    usage: /startHttpServer

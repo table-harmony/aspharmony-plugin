@@ -1,9 +1,7 @@
 package me.lironkaner.aspHarmonyPlugin;
 
 import org.bukkit.*;
-import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
-import org.bukkit.block.Container;
+import org.bukkit.block.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
@@ -76,25 +74,28 @@ public class BookService {
 
             if (bookMeta == null) return;
 
-            bookMeta.setTitle(book.getTitle());
-            bookMeta.setAuthor("Minecraft Library");
             bookMeta.getPersistentDataContainer().set(bookIdKey, PersistentDataType.INTEGER, book.getId());
 
-            bookMeta.addPage(
+            String page = "Title: " + book.getTitle() +
+                    "\n\n---\n\n" +
                     "Description: " + book.getDescription() +
-                            "\n\n---\n\n" +
-                            "Image URL: " + book.getImageUrl()
-            );
+                    "\n\n---\n\n" +
+                    "Image URL: " + book.getImageUrl();
+            bookMeta.addPage(page);
 
             for (Chapter chapter : book.getChapters()) {
-                bookMeta.addPage(chapter.getContent());
+                String chapterPage = chapter.getTitle() +
+                        "\n\n---\n\n" +
+                        chapter.getContent();
+
+                bookMeta.addPage(chapterPage);
             }
 
             bookItem.setItemMeta(bookMeta);
 
             World world = Bukkit.getServer().getWorlds().getFirst();
-            Location spawnLocation = new Location(world, 17, 75, 16);
-            world.dropItemNaturally(spawnLocation, bookItem);
+            Location spawnLocation = new Location(world, 16.5, 74, 16.5);
+            world.dropItem(spawnLocation, bookItem);
         });
     }
 
@@ -115,7 +116,7 @@ public class BookService {
     public void deleteBook(int id) {
         CompletableFuture.runAsync(() -> {
             try {
-                Book existingBook = getBook(id).get();
+                Book existingBook = getBook(id).get();  // Fetch the book based on ID
                 if (existingBook == null) throw new RuntimeException("Book not found");
 
                 Bukkit.getScheduler().callSyncMethod(plugin, () -> {
@@ -125,40 +126,24 @@ public class BookService {
                         Inventory inventory = container.getInventory();
 
                         ItemStack bookItem = searchInventory(inventory, id);
-                        if (bookItem == null) continue;
+                        if (bookItem == null) {
+                            System.out.println("Book not found in this container.");
+                            continue;
+                        }
 
                         System.out.println("Book found and will be removed: " + bookItem);
 
-                        List<ItemStack> remainingItems = new ArrayList<>();
-                        for (ItemStack itemStack : inventory.getContents()) {
-                            if (itemStack != null && !itemStack.equals(bookItem)) {
-                                remainingItems.add(itemStack);
-                            }
-                        }
+                        inventory.remove(bookItem);
 
-                        Block block = container.getBlock();
-                        Location chestLocation = block.getLocation();
-
-                        block.setType(Material.AIR);
-                        System.out.println("Old chest removed.");
-
-                        block.setType(Material.CHEST);
-                        System.out.println("New chest created.");
-
-                        Chest newChest = (Chest) block.getState();
-                        Inventory newInventory = newChest.getInventory();
-
-                        for (ItemStack remainingItem : remainingItems) {
-                            newInventory.addItem(remainingItem);
-                        }
-
-                        newChest.update();
-                        System.out.println("Chest updated with remaining items, book removed.");
+                        Chest chest = (Chest) container.getBlock().getState();
+                        chest.update();
+                        System.out.println("Chest updated, book removed.");
 
                         return null;
                     }
                     return null;
                 }).get();
+
             } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException("Error deleting book", e);
             }
@@ -203,7 +188,6 @@ public class BookService {
         return null;
     }
 
-
     private List<Container> getChunkContainers(Chunk chunk) {
         List<Container> blocks = new ArrayList<>();
 
@@ -227,7 +211,6 @@ public class BookService {
         return world.getChunkAt(spawnLocation);
     }
 
-
     private boolean isBookItem(ItemStack itemStack) {
         return itemStack != null && (itemStack.getType() == Material.WRITTEN_BOOK || itemStack.getType() == Material.WRITABLE_BOOK);
     }
@@ -237,17 +220,25 @@ public class BookService {
         book.setId(bookMeta.getPersistentDataContainer().get(bookIdKey, PersistentDataType.INTEGER));
         book.setTitle(bookMeta.getTitle());
 
-        if (bookMeta.hasPages()) {
-            String firstPage = bookMeta.getPage(1);
-            String[] parts = firstPage.split("\n\n---\n\n");
-            book.setDescription(parts.length > 0 ? parts[0].replace("Description: ", "") : "");
-            book.setImageUrl(parts.length > 1 ? parts[1].replace("Image URL: ", "") : "");
-        }
+        if (!bookMeta.hasPages())
+            return null;
+
+        String page = bookMeta.getPages().getFirst();
+        String[] parts = page.split("\n\n---\n\n");
+        book.setTitle(parts.length > 0 ? parts[0].replace("Title: ", "") : "");
+        book.setDescription(parts.length > 1 ? parts[1].replace("Description: ", "") : "");
+        book.setImageUrl(parts.length > 2 ? parts[2].replace("Image URL: ", "") : "");
 
         List<Chapter> chapters = new ArrayList<>();
-        for (int i = 1; i < bookMeta.getPages().size(); i++) {
+        for (int i = 2; i <= bookMeta.getPages().size(); i++) {
             Chapter chapter = new Chapter();
-            chapter.setContent(bookMeta.getPage(i + 1));
+
+            String chapterPage = bookMeta.getPage(i);
+            String[] chapterParts = chapterPage.split("\n\n---\n\n");
+
+            chapter.setTitle(chapterParts.length > 0 ? chapterParts[0] : "");
+            chapter.setContent(chapterParts.length > 1 ? chapterParts[1] : "");
+
             chapters.add(chapter);
         }
 

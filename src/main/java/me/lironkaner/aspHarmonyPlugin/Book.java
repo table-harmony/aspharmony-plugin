@@ -1,5 +1,6 @@
 package me.lironkaner.aspHarmonyPlugin;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Book {
@@ -43,6 +44,8 @@ public class Book {
     }
 
     public List<Chapter> getChapters() {
+        if (chapters == null)
+            chapters = new ArrayList<>();
         return chapters;
     }
 

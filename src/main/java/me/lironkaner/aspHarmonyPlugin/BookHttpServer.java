@@ -16,7 +16,7 @@ public class BookHttpServer {
         this.bookService = bookService;
     }
 
-    public void initiate() {
+    public void start() {
         port(8000);
 
         get("/", (req, res) -> "AspHarmony spark service.");
