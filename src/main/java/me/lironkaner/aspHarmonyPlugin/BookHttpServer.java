@@ -17,6 +17,7 @@ public class BookHttpServer {
     }
 
     public void start() {
+        ipAddress("0.0.0.0");
         port(8000);
 
         get("/", (req, res) -> "AspHarmony spark service.");

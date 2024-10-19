@@ -27,7 +27,7 @@ public class BookService {
 
             try {
                 return Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                    Chunk storageChunk = getSpawnChunk();
+                    Chunk storageChunk = getChunk();
 
                     for (Container container: getChunkContainers(storageChunk)) {
                         List<Book> inventoryBooks = getInventoryBooks(container.getInventory());
@@ -47,7 +47,7 @@ public class BookService {
 
             try {
                 return Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                    Chunk storageChunk = getSpawnChunk();
+                    Chunk storageChunk = getChunk();
 
                     for (Container container : getChunkContainers(storageChunk)) {
                         ItemStack bookItem = searchInventory(container.getInventory(), id);
@@ -94,7 +94,7 @@ public class BookService {
             bookItem.setItemMeta(bookMeta);
 
             World world = Bukkit.getServer().getWorlds().getFirst();
-            Location spawnLocation = new Location(world, 16.5, 74, 16.5);
+            Location spawnLocation = new Location(world, 15.5, 75, 16.5);
             world.dropItem(spawnLocation, bookItem);
         });
     }
@@ -116,11 +116,11 @@ public class BookService {
     public void deleteBook(int id) {
         CompletableFuture.runAsync(() -> {
             try {
-                Book existingBook = getBook(id).get();  // Fetch the book based on ID
+                Book existingBook = getBook(id).get();
                 if (existingBook == null) throw new RuntimeException("Book not found");
 
                 Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                    Chunk storageChunk = getSpawnChunk();
+                    Chunk storageChunk = getChunk();
 
                     for (Container container : getChunkContainers(storageChunk)) {
                         Inventory inventory = container.getInventory();
@@ -135,8 +135,11 @@ public class BookService {
 
                         inventory.remove(bookItem);
 
-                        Chest chest = (Chest) container.getBlock().getState();
-                        chest.update();
+                        if (container.getBlock().getType() == Material.CHEST)
+                            container.getBlock().getState().update();
+                        else if (container.getBlock().getType() == Material.HOPPER)
+                            container.getBlock().getState().update();
+
                         System.out.println("Chest updated, book removed.");
 
                         return null;
@@ -189,7 +192,7 @@ public class BookService {
     }
 
     private List<Container> getChunkContainers(Chunk chunk) {
-        List<Container> blocks = new ArrayList<>();
+        List<Container> containers = new ArrayList<>();
 
         for (int x = 0; x < 16; x++) {
             for (int y = chunk.getWorld().getMinHeight(); y < chunk.getWorld().getMaxHeight(); y++) {
@@ -197,17 +200,18 @@ public class BookService {
                     Block block = chunk.getBlock(x, y, z);
 
                     if (block.getState() instanceof Container container)
-                        blocks.add(container);
+                        if (block.getType() == Material.CHEST || block.getType() == Material.HOPPER)
+                            containers.add(container);
                 }
             }
         }
 
-        return blocks;
+        return containers;
     }
 
-    private Chunk getSpawnChunk() {
+    private Chunk getChunk() {
         World world = Bukkit.getServer().getWorlds().getFirst();
-        Location spawnLocation = world.getSpawnLocation();
+        Location spawnLocation = new Location(world, 15.5, 75, 16.5);
         return world.getChunkAt(spawnLocation);
     }
 
